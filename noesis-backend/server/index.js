@@ -58,15 +58,12 @@ async function analyzeEmotion(text, audioBuffer) {
 }
 
 // --- Combined AI Route ---
-app.post("/api/suggest-with-emotion-audio", upload.single("audio"), async (req, res) => {
+app.post("/api/suggest-with-emotion-audio", async (req, res) => {
   try {
-    const audioFile = req.file;
-    if (!audioFile) return res.status(400).json({ error: "Audio required" });
+    const { message } = req.body;
+    if (!message) return res.status(400).json({ error: "Message text required" });
 
-    // 1️⃣ Transcribe
-    const transcription = await transcribeAudio(audioFile.buffer);
-
-    // 2️⃣ Emotion analysis (text only via Hugging Face)
+    // Send to Hugging Face
     const hfResp = await fetch(
       "https://api-inference.huggingface.co/models/j-hartmann/emotion-english-distilroberta-base",
       {
@@ -75,10 +72,7 @@ app.post("/api/suggest-with-emotion-audio", upload.single("audio"), async (req, 
           "Content-Type": "application/json",
           "Authorization": `Bearer ${process.env.HF_TOKEN}`,
         },
-        body: JSON.stringify({
-          inputs: transcription,
-          options: { wait_for_model: true },
-        }),
+        body: JSON.stringify({ inputs: message }),
       }
     );
 
@@ -86,20 +80,16 @@ app.post("/api/suggest-with-emotion-audio", upload.single("audio"), async (req, 
     const emotion = hfJson[0]?.label || "neutral";
     const confidence = hfJson[0]?.score || 0;
 
-    // 3️⃣ Emit to connected agent
-    io.emit("agent_message", {
-      transcript: transcription,
-      emotion,
-      confidence,
-    });
+    io.emit("agent_message", { transcript: message, emotion, confidence });
 
-    // 4️⃣ Respond to client with full data
-    res.json({ transcript: transcription, emotion, confidence });
+    res.json({ transcript: message, emotion, confidence });
   } catch (err) {
-    console.error("Audio route failed:", err);
-    res.status(500).json({ error: "Failed to process audio" });
+    console.error("suggest-with-emotion-audio failed:", err);
+    res.status(500).json({ error: "Failed to process text" });
   }
 });
+
+
 
 // --- Streamed Audio Chunks (optional incremental updates) ---
 app.post("/api/stream-audio-chunk", upload.single("audio"), async (req, res) => {
@@ -126,6 +116,35 @@ app.post("/api/stream-audio-chunk", upload.single("audio"), async (req, res) => 
     res.status(500).json({ error: "Failed to stream chunk" });
   }
 });
+
+app.post("/api/analyze-emotion", async (req, res) => {
+  try {
+    const { message } = req.body;
+    if (!message) return res.status(400).json({ error: "Text message required" });
+
+    const hfResp = await fetch(
+      "https://api-inference.huggingface.co/models/j-hartmann/emotion-english-distilroberta-base",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.HF_TOKEN}`,
+        },
+        body: JSON.stringify({ inputs: message }),
+      }
+    );
+
+    const hfJson = await hfResp.json();
+    const emotion = hfJson[0]?.label || "neutral";
+    const confidence = hfJson[0]?.score || 0;
+
+    res.json({ emotion, confidence });
+  } catch (err) {
+    console.error("analyze-emotion failed:", err);
+    res.status(500).json({ error: "Failed to analyze emotion" });
+  }
+});
+
 
 const PORT = 3001;
 server.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
