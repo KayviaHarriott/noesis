@@ -5,7 +5,6 @@ import {
   fetchAiSuggestion,
   fetchEmotion,
 } from "../api/agentApi";
-import { Link } from "react-router-dom";
 
 export const AgentDashboard = () => {
   // Chat + AI suggestion
