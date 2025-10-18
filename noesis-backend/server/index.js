@@ -5,6 +5,8 @@ import { Server } from "socket.io";
 import cors from "cors";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
+import { Readable } from "stream";
+import https from "https";
 
 dotenv.config();
 
@@ -79,34 +81,37 @@ app.post("/api/analyze-emotion", async (req, res) => {
 
 // ✅ -------------- HELPERS -----------------
 
+
+
 async function suggestFromOllama(text) {
   try {
     const resp = await fetch(
-      process.env.OLLAMA_API_URL || "https://86y7be6mjfb4mj-11434.proxy.runpod.net/api/generate",
+      process.env.OLLAMA_API_URL ||
+        "https://86y7be6mjfb4mj-11434.proxy.runpod.net/api/generate",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: process.env.OLLAMA_MODEL || "qwen2.5:latest",
           prompt: `Client said: "${text}". Suggest a kind, empathetic, and helpful response the agent could say.`,
-          stream: true, // 👈 make sure streaming is on
+          stream: true,
         }),
+        // avoid TLS issues on Render
+        agent: new https.Agent({ rejectUnauthorized: false }),
       }
     );
 
-    // ✅ Collect streaming chunks
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
+    // ✅ Node streams compatible version
+    if (!resp.body) {
+      throw new Error("No response body from Ollama");
+    }
+
+    const reader = Readable.from(resp.body);
     let fullResponse = "";
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const chunk = decoder.decode(value, { stream: true });
-
-      // Ollama sends multiple JSON lines
-      for (const line of chunk.split("\n")) {
+    for await (const chunk of reader) {
+      const textChunk = chunk.toString();
+      for (const line of textChunk.split("\n")) {
         if (!line.trim()) continue;
         try {
           const json = JSON.parse(line);
@@ -123,7 +128,6 @@ async function suggestFromOllama(text) {
     return "⚠️ Could not connect to Ollama API.";
   }
 }
-
 
 
 async function analyzeEmotion(text) {
