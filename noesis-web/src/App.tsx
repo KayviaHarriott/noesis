@@ -1,14 +1,22 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
+import { fetchBackendMessage } from './api/clientApi'
 
 function App() {
   const [count, setCount] = useState(0)
+const [message, setMessage] = useState("Loading...");
+
+  useEffect(() => {
+    fetchBackendMessage().then(setMessage);
+  }, []);
 
   return (
     <>
       <div>
+        <h1>{import.meta.env.VITE_APP_NAME}</h1>
+      <p>{message}</p>
         <a href="https://vite.dev" target="_blank">
           <img src={viteLogo} className="logo" alt="Vite logo" />
         </a>
