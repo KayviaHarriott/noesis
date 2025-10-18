@@ -125,6 +125,7 @@ async function suggestFromOllama(text) {
 }
 
 
+
 async function analyzeEmotion(text) {
   try {
     const hfResp = await fetch(
