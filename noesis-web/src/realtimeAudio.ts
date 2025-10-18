@@ -97,15 +97,21 @@ export class VoiceSocket {
     this.mediaStream = null;
   }
 
-  appendChunk(chunk: Uint8Array) {
-    if (!this.sourceBuffer || this.sourceBuffer.updating) return queueMicrotask(() => this.appendChunk(chunk));
-    try {
-      this.sourceBuffer.appendBuffer(chunk);
-      if (this.audioEl.paused) this.audioEl.play().catch(() => {});
-    } catch (e) {
-      console.error("appendBuffer failed:", e);
-    }
-  }
+      appendChunk(chunk: Uint8Array) {
+      if (!this.sourceBuffer) return;
+      if (this.sourceBuffer.updating)
+        return queueMicrotask(() => this.appendChunk(chunk));
+      try {
+        // ✅ Fixed type for TS2345
+        this.sourceBuffer.appendBuffer(chunk.buffer.slice(0));
+        if (this.audioEl.paused) {
+          this.audioEl.play().catch(() => {});
+        }
+      } catch (e) {
+        console.error("appendBuffer failed:", e);
+      }
+      }
+
 
   close() {
     this.send({ type: "bye" });

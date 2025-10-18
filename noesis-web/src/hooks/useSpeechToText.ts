@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // hooks/useSpeechToText.ts
 
 // --- Add this block at the very top ---
@@ -26,6 +27,7 @@ export function useSpeechToText(onFinalText: (text: string) => void) {
 
   useEffect(() => {
     const SpeechRecognition =
+    
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       console.error("Speech recognition not supported in this browser");
