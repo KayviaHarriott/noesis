@@ -15,15 +15,32 @@ export function subscribeToClientMessages(callback: (message: string) => void) {
   };
 }
 
+// export const fetchAiSuggestion = async (message: string): Promise<string> => {
+//   const res = await fetch(BACKEND_URL+`/api/suggest-with-emotion-audio`, {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     body: JSON.stringify({ message }),
+//   });
+//   const data = await res.json();
+//   return data.suggestion || "No suggestion available";
+// };
+
 export const fetchAiSuggestion = async (message: string): Promise<string> => {
-  const res = await fetch(BACKEND_URL+`/api/suggest-with-emotion-audio`, {
+  const res = await fetch(`${BACKEND_URL}/api/suggest-text`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message }),
   });
+
+  if (!res.ok) {
+    console.error("AI suggestion request failed:", await res.text());
+    return "⚠️ No suggestion available.";
+  }
+
   const data = await res.json();
-  return data.suggestion || "No suggestion available";
+  return data.suggestion || "No suggestion available.";
 };
+
 
 // ...existing imports & socket setup above
 export const fetchEmotion = async (message: string): Promise<{ emotion: string; confidence: number }> => {

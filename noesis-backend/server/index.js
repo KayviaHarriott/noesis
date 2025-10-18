@@ -145,6 +145,34 @@ app.post("/api/analyze-emotion", async (req, res) => {
   }
 });
 
+// --- Ollama text suggestion route ---
+app.post("/api/suggest-text", async (req, res) => {
+  try {
+    const { message } = req.body;
+    if (!message) return res.status(400).json({ error: "Message text required" });
+
+    // 🔹 Send client message to your Ollama model
+    const ollamaResp = await fetch(process.env.OLLAMA_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "llama3.1:latest",  // change if using another
+        prompt: `The client said: "${message}". Suggest a kind, empathetic and concise reply the agent could say.`,
+      }),
+    });
+
+    const text = await ollamaResp.text();
+
+    // 🔹 Emit to the agent dashboard
+    io.emit("agent_message", { transcript: message, ai_suggestion: text });
+
+    res.json({ transcript: message, suggestion: text });
+  } catch (err) {
+    console.error("Ollama suggestion error:", err);
+    res.status(500).json({ error: "Failed to fetch suggestion from Ollama" });
+  }
+});
+
 
 const PORT = 3001;
 server.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
