@@ -1,0 +1,277 @@
+
+
+        body {
+            background: linear-gradient(180deg, #1c1c1e 0%, #000000 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 40px 20px 40px 20px;
+            color: white;
+        }
+
+        /* Blur effect background */
+        .blur-bg {
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            right: -50%;
+            bottom: -50%;
+            background: radial-gradient(circle at 50% 50%, rgba(0, 122, 255, 0.15), transparent 60%);
+            filter: blur(100px);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Container */
+        .call-container {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 400px;
+            height: calc(100vh - 80px);
+        }
+
+        /* Top Section */
+        .call-header {
+            text-align: center;
+            padding-top: 20px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #30d158;
+            box-shadow: 0 0 12px rgba(48, 209, 88, 0.6);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.1); }
+        }
+
+        .company-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        .call-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .call-subtitle {
+            font-size: 17px;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 400;
+        }
+
+        .call-timer {
+            font-size: 19px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 15px;
+            font-weight: 500;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 1px;
+        }
+
+        /* Middle Section - Audio Waves */
+        .audio-visualization {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            height: 80px;
+            margin: 40px 0;
+        }
+
+        .audio-bar {
+            width: 3px;
+            background: rgba(0, 122, 255, 0.6);
+            border-radius: 10px;
+            transition: height 0.1s ease;
+        }
+
+        .audio-bar.active {
+            animation: wave 1.2s ease-in-out infinite;
+        }
+
+        @keyframes wave {
+            0%, 100% { height: 20px; opacity: 0.4; }
+            50% { height: 60px; opacity: 1; }
+        }
+
+        /* Bottom Section - Controls */
+        .call-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            width: 100%;
+            padding-bottom: 20px;
+        }
+
+        .main-button {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            position: relative;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .mute-button {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+        }
+
+        .mute-button:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .mute-button.active {
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .mute-button.active i {
+            color: #1c1c1e;
+        }
+
+        .mute-button i {
+            font-size: 28px;
+            color: white;
+        }
+
+        .hangup-button {
+            background: #ff3b30;
+            width: 70px;
+            height: 70px;
+        }
+
+        .hangup-button:active {
+            transform: scale(0.95);
+            background: #d32f2f;
+        }
+
+        .hangup-button i {
+            font-size: 32px;
+            color: white;
+            transform: rotate(135deg);
+        }
+
+        .button-label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 12px;
+            font-weight: 400;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .control-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Recording pulse effect */
+        .mute-button.active::before {
+            content: '';
+            position: absolute;
+            inset: -8px;
+            border-radius: 50%;
+            background: rgba(0, 122, 255, 0.3);
+            animation: pulse-ring 2s ease-out infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.95);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1.3);
+                opacity: 0;
+            }
+        }
+
+        /* Error State */
+        .error-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(28, 28, 30, 0.95);
+            backdrop-filter: blur(30px);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 320px;
+            z-index: 100;
+        }
+
+        .error-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .error-subtitle {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.6);
+            line-height: 1.4;
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 400px) {
+            .call-title { font-size: 28px; }
+            .main-button { width: 75px; height: 75px; }
+            .mute-button i { font-size: 26px; }
+            .hangup-button { width: 65px; height: 65px; }
+            .hangup-button i { font-size: 28px; }
+        }
+
+        /* Safe area for notch devices */
+        @supports (padding-top: env(safe-area-inset-top)) {
+            body {
+                padding-top: max(40px, env(safe-area-inset-top));
+                padding-bottom: max(40px, env(safe-area-inset-bottom));
+            }
+        }
+    
