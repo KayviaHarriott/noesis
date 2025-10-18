@@ -85,7 +85,7 @@ async function suggestFromOllama(text) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "llama3", // 🔸 change if needed
+        model: "qwen2.5:latest", // 🔸 change if needed
         prompt: `Client said: "${text}". Suggest a kind, empathetic and helpful response the agent could say.`,
       }),
     });

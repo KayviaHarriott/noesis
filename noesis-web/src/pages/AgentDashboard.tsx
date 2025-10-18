@@ -41,44 +41,66 @@ export const AgentDashboard = () => {
   };
 
   // Subscribe to client messages and fetch AI suggestion + emotion
-  useEffect(() => {
-    const unsubscribe = subscribeToClientMessages((data: string) => {
-      // Push message
-      setMessages((prev) => [...prev, `Client: ${data}`]);
+ useEffect(() => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const unsubscribe = subscribeToClientMessages((data: any) => {
+    const msgText =
+      typeof data === "string"
+        ? data
+        : data?.transcript || JSON.stringify(data);
 
-      // Scroll transcript down a little later
-      setTimeout(() => transcriptRef.current?.scrollTo({ top: 999999, behavior: "smooth" }), 50);
+    setMessages((prev) => [...prev, `Client: ${msgText}`]);
 
-      // Fire both calls (AI suggestion + emotion) in parallel
-      const run = async () => {
-        try {
-          setLoadingSuggestion(true);
-          const [ai, emo] = await Promise.allSettled([fetchAiSuggestion(data), fetchEmotion(data)]);
-          if (ai.status === "fulfilled") {
-            setSuggestion(ai.value);
-          } else {
-            setSuggestion("⚠️ Could not load AI suggestion");
-          }
-          if (emo.status === "fulfilled") {
-            // normalize capitalization
-            const e = emo.value.emotion ? emo.value.emotion[0].toUpperCase() + emo.value.emotion.slice(1) : "Unknown";
-            setSentiment({ emotion: e, confidence: emo.value.confidence ?? 0 });
-            // lightly nudge bars based on detected emotion
-            setEmotions((prev) => ({
-              frustration: Math.min(95, e.toLowerCase().includes("anger") || e.toLowerCase().includes("frustrat") ? Math.max(prev.frustration, 70) : prev.frustration - 1),
-              confusion: prev.confusion + (e.toLowerCase().includes("confus") ? 2 : -1),
-              hope: prev.hope + (e.toLowerCase().includes("joy") || e.toLowerCase().includes("hope") ? 2 : -1),
-            }));
-          }
-        } finally {
-          setLoadingSuggestion(false);
+    // Scroll transcript
+    setTimeout(() => transcriptRef.current?.scrollTo({ top: 999999, behavior: "smooth" }), 50);
+
+    // Fire both calls (AI suggestion + emotion) in parallel
+    const run = async () => {
+      try {
+        setLoadingSuggestion(true);
+        const [ai, emo] = await Promise.allSettled([
+          fetchAiSuggestion(msgText),
+          fetchEmotion(msgText),
+        ]);
+        if (ai.status === "fulfilled") {
+          setSuggestion(ai.value);
+        } else {
+          setSuggestion("⚠️ Could not load AI suggestion");
         }
-      };
-      run();
-    });
+        if (emo.status === "fulfilled") {
+          const e = emo.value.emotion
+            ? emo.value.emotion[0].toUpperCase() + emo.value.emotion.slice(1)
+            : "Unknown";
+          setSentiment({
+            emotion: e,
+            confidence: emo.value.confidence ?? 0,
+          });
+          setEmotions((prev) => ({
+            frustration:
+              e.toLowerCase().includes("anger") ||
+              e.toLowerCase().includes("frustrat")
+                ? Math.max(prev.frustration, 70)
+                : prev.frustration - 1,
+            confusion:
+              prev.confusion + (e.toLowerCase().includes("confus") ? 2 : -1),
+            hope:
+              prev.hope +
+              (e.toLowerCase().includes("joy") ||
+              e.toLowerCase().includes("hope")
+                ? 2
+                : -1),
+          }));
+        }
+      } finally {
+        setLoadingSuggestion(false);
+      }
+    };
+    run();
+  });
 
-    return () => unsubscribe();
-  }, []);
+  return () => unsubscribe();
+}, []);
+
 
   // Small demo timers: empathy drift + ticking clock
   useEffect(() => {
