@@ -103,7 +103,7 @@ export class VoiceSocket {
         return queueMicrotask(() => this.appendChunk(chunk));
       try {
         // ✅ Fixed type for TS2345
-        this.sourceBuffer.appendBuffer(chunk.buffer.slice(0));
+this.sourceBuffer.appendBuffer(chunk.buffer.slice(0) as ArrayBuffer);
         if (this.audioEl.paused) {
           this.audioEl.play().catch(() => {});
         }
