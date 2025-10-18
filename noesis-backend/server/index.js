@@ -68,47 +68,18 @@ app.post("/api/suggest-text", async (req, res) => {
 });
 
 // Standalone emotion analyzer
-async function analyzeEmotion(text) {
+app.post("/api/analyze-emotion", async (req, res) => {
   try {
-    const hfResp = await fetch(
-      "https://api-inference.huggingface.co/models/j-hartmann/emotion-english-distilroberta-base",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.HF_TOKEN}`,
-        },
-        body: JSON.stringify({
-          inputs: text,
-          options: { wait_for_model: true },
-        }),
-      }
-    );
+    const { message } = req.body;
+    if (!message) return res.status(400).json({ error: "Text required" });
 
-    const json = await hfResp.json();
-
-    if (json.error) {
-      console.warn("⚠️ Hugging Face model error:", json.error);
-      return { emotion: "unknown", confidence: 0 };
-    }
-
-    // ✅ Handle nested and flat array formats
-    const results = Array.isArray(json)
-      ? (Array.isArray(json[0]) ? json[0] : json)
-      : [];
-
-    const top = results.reduce(
-      (best, cur) => (cur.score > best.score ? cur : best),
-      { label: "neutral", score: 0 }
-    );
-
-    return { emotion: top.label, confidence: top.score };
+    const result = await analyzeEmotion(message);
+    res.json(result);
   } catch (err) {
-    console.error("❌ Emotion analysis failed:", err);
-    return { emotion: "unknown", confidence: 0 };
+    console.error("❌ Emotion route failed:", err);
+    res.status(500).json({ error: "Emotion analysis failed" });
   }
-}
-
+});
 
 // -------------- HELPERS -----------------
 
@@ -189,19 +160,37 @@ async function analyzeEmotion(text) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${process.env.HF_TOKEN}`,
         },
-        body: JSON.stringify({ inputs: text }),
+        body: JSON.stringify({
+          inputs: text,
+          options: { wait_for_model: true },
+        }),
       }
     );
 
     const json = await hfResp.json();
-    const emotion = json[0]?.label || "neutral";
-    const confidence = json[0]?.score || 0;
-    return { emotion, confidence };
-  } catch (e) {
-    console.error("Emotion analysis failed:", e);
+
+    if (json.error) {
+      console.warn("⚠️ Hugging Face model error:", json.error);
+      return { emotion: "unknown", confidence: 0 };
+    }
+
+    // ✅ Handle nested and flat array formats
+    const results = Array.isArray(json)
+      ? (Array.isArray(json[0]) ? json[0] : json)
+      : [];
+
+    const top = results.reduce(
+      (best, cur) => (cur.score > best.score ? cur : best),
+      { label: "neutral", score: 0 }
+    );
+
+    return { emotion: top.label, confidence: top.score };
+  } catch (err) {
+    console.error("❌ Emotion analysis failed:", err);
     return { emotion: "unknown", confidence: 0 };
   }
 }
+
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
