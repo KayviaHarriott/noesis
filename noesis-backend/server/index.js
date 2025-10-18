@@ -36,7 +36,12 @@ io.on("connection", (socket) => {
     const { emotion, confidence } = await emotionPromise;
 
     // Step 4: Send suggestion + emotion to agent
-    io.emit("agent_message", { transcript: text, suggestion, emotion, confidence });
+    io.emit("agent_message", {
+      transcript: text,
+      suggestion,
+      emotion,
+      confidence,
+    });
   });
 
   socket.on("agent_reply", (text) => {
@@ -53,7 +58,8 @@ io.on("connection", (socket) => {
 app.post("/api/suggest-text", async (req, res) => {
   try {
     const { message } = req.body;
-    if (!message) return res.status(400).json({ error: "Message text required" });
+    if (!message)
+      return res.status(400).json({ error: "Message text required" });
 
     const suggestion = await suggestFromOllama(message);
     const { emotion, confidence } = await analyzeEmotion(message);
@@ -81,8 +87,6 @@ app.post("/api/analyze-emotion", async (req, res) => {
 
 // ✅ -------------- HELPERS -----------------
 
-
-
 async function suggestFromOllama(text) {
   try {
     const resp = await fetch(
@@ -94,7 +98,7 @@ async function suggestFromOllama(text) {
         body: JSON.stringify({
           model: process.env.OLLAMA_MODEL || "qwen2.5:latest",
           // prompt: `Client said: "${text}". Suggest a kind, empathetic, and helpful response the agent could say.`,
-          prompt:`You are coaching a live customer support agent during a call.
+          prompt: `You are coaching a live customer support agent during a call.
 
 Client message:
 ---
@@ -150,7 +154,6 @@ Guidelines:
     return "⚠️ Could not connect to Ollama API.";
   }
 }
-
 
 async function analyzeEmotion(text) {
   try {
