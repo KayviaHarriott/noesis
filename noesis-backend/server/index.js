@@ -1,4 +1,4 @@
-// server.js
+// index.js
 
 require('dotenv').config(); // Load .env variables
 
@@ -10,10 +10,10 @@ const app = express();
 app.use(express.json());
 app.use(
   cors({
-    origin: ['*'],
-    credentials: true,
+    origin: '*',
   })
 );
+
 
 // Basic route
 app.get('/', (req, res) => {
