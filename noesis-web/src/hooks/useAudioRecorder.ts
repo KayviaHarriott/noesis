@@ -23,7 +23,9 @@ export function useAudioRecorder(
       formData.append("audio", blob, "chunk.webm");
       formData.append("role", role);
 
-      await fetch("https://hackathonpractice-backend.onrender.com/api/stream-audio-chunk", {
+      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
+      await fetch(`${BACKEND_URL}/api/stream-audio-chunk`, {
         method: "POST",
         body: formData,
       });
