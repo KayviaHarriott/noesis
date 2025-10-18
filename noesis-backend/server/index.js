@@ -1,9 +1,9 @@
 // server.js
-import cors from 'cors';
 
 require('dotenv').config(); // Load .env variables
 
 const express = require('express');
+const cors = require('cors');
 const app = express();
 
 // Middleware to parse JSON
