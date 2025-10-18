@@ -19,23 +19,19 @@ const io = new Server(server, {
   cors: { origin: "*", methods: ["GET", "POST"] },
 });
 
-// ✅ Socket.IO setup
+// Socket.IO setup
 io.on("connection", (socket) => {
   console.log("🟢 User connected:", socket.id);
 
   socket.on("client_message", async (text) => {
     console.log("📨 Message from client:", text);
-
-    // Step 1: Analyze emotion (async, non-blocking)
+    
     const emotionPromise = analyzeEmotion(text);
-
-    // Step 2: Generate AI suggestion via Ollama
+    
     const suggestion = await suggestFromOllama(text);
-
-    // Step 3: Wait for emotion result
+    
     const { emotion, confidence } = await emotionPromise;
-
-    // Step 4: Send suggestion + emotion to agent
+    
     io.emit("agent_message", {
       transcript: text,
       suggestion,
@@ -52,7 +48,7 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => console.log("🔴 Disconnected:", socket.id));
 });
 
-// ✅ -------------- API ROUTES -----------------
+//-------------- API ROUTES -----------------
 
 // Simple text suggestion (for fetchAiSuggestion)
 app.post("/api/suggest-text", async (req, res) => {
@@ -85,7 +81,7 @@ app.post("/api/analyze-emotion", async (req, res) => {
   }
 });
 
-// ✅ -------------- HELPERS -----------------
+// -------------- HELPERS -----------------
 
 async function suggestFromOllama(text) {
   try {
@@ -126,7 +122,7 @@ async function suggestFromOllama(text) {
       }
     );
 
-    // ✅ Node streams compatible version
+    // Node streams compatible version
     if (!resp.body) {
       throw new Error("No response body from Ollama");
     }
@@ -178,6 +174,5 @@ async function analyzeEmotion(text) {
   }
 }
 
-// ✅ Start server
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
