@@ -27,14 +27,18 @@ declare global {
   }
 }
 
-
 export const ClientDashboard = () => {
   const [messages, setMessages] = useState<string[]>([]);
   const [text, setText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const partialBuffer = useRef<string>("");
 
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const stopFnRef = useRef<() => void>(() => {});
+  const partialBuffer = useRef<string>("");
+  const manuallyStoppedRef = useRef(false);
+  const lastSentRef = useRef<string>(""); // ✅ Track last thing sent
+
+  // 🔄 Subscribe to agent replies
   useEffect(() => {
     const unsubscribe = subscribeToAgentReplies((msg) => {
       setMessages((prev) => [...prev, `Agent: ${msg}`]);
@@ -42,6 +46,7 @@ export const ClientDashboard = () => {
     return unsubscribe;
   }, []);
 
+  // 📨 Manual send button (for text box)
   const handleSend = () => {
     if (text.trim()) {
       sendClientMessage(text);
@@ -50,75 +55,85 @@ export const ClientDashboard = () => {
     }
   };
 
-  // 🔊 Speech recognition setup
-  // 🔊 Speech recognition setup
-const startListening = () => {
-  const SpeechRecognition =
-    window.SpeechRecognition || (window as any).webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    alert("Speech Recognition not supported in this browser.");
-    return;
-  }
-
-  const recognition = new SpeechRecognition();
-  recognition.lang = "en-US";
-  recognition.interimResults = true;
-  recognition.continuous = true;
-
-  let lastPartial = "";
-let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-
-  recognition.onstart = () => setIsRecording(true);
-
-  recognition.onend = () => {
-    setIsRecording(false);
-
-    // 🟢 Send final message once
-    const finalText = partialBuffer.current.trim();
-    if (finalText) {
-      sendClientMessage(finalText);
-      setMessages((prev) => [...prev, `You (final): ${finalText}`]);
-      partialBuffer.current = "";
-    }
-  };
-
-  recognition.onresult = (event: SpeechRecognitionEvent) => {
-    let interimTranscript = "";
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      const transcript = event.results[i][0].transcript;
-      if (event.results[i].isFinal) {
-        partialBuffer.current += " " + transcript;
-      } else {
-        interimTranscript += transcript;
-      }
+  // 🎙️ Start speech recognition
+  const startListening = () => {
+    const SpeechRecognition =
+      window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech Recognition not supported in this browser.");
+      return;
     }
 
-    const currentFull = (partialBuffer.current + " " + interimTranscript).trim();
-    setText(currentFull);
+    const recognition = new SpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.interimResults = true;
+    recognition.continuous = true;
 
-    // 🕐 Debounced partial sending (every ~1.2s, only if new content)
-    if (debounceTimer) clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      if (currentFull && currentFull !== lastPartial) {
-        sendClientMessage(currentFull);
-        lastPartial = currentFull;
+    let lastPartial = "";
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    manuallyStoppedRef.current = false;
+
+    recognition.onstart = () => setIsRecording(true);
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let interimTranscript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          partialBuffer.current += " " + transcript;
+        } else {
+          interimTranscript += transcript;
+        }
       }
-    }, 1200);
+
+      const currentFull = (partialBuffer.current + " " + interimTranscript).trim();
+      setText(currentFull);
+
+      // 🕐 Debounced partial sending (~1.2s)
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        if (currentFull && currentFull !== lastPartial) {
+          sendClientMessage(currentFull);
+          lastPartial = currentFull;
+          lastSentRef.current = currentFull; // ✅ Remember what we sent
+        }
+      }, 1200);
+    };
+
+    recognition.onerror = (event: { error: any; }) => {
+      console.error("Speech recognition error:", event.error);
+      setIsRecording(false);
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+
+      // ✅ Only send final if user manually stopped AND it's new
+      if (manuallyStoppedRef.current) {
+        const finalText = partialBuffer.current.trim();
+        if (finalText && finalText !== lastSentRef.current) {
+          sendClientMessage(finalText);
+          setMessages((prev) => [...prev, `You (final): ${finalText}`]);
+          lastSentRef.current = finalText;
+        }
+        partialBuffer.current = "";
+      }
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+
+    // ✅ Stop function reference
+    stopFnRef.current = () => {
+      manuallyStoppedRef.current = true;
+      recognition.stop();
+      setIsRecording(false);
+    };
   };
 
-  recognition.onerror = (event: { error: any; }) => {
-    console.error("Speech recognition error:", event.error);
-    setIsRecording(false);
-  };
-
-  recognitionRef.current = recognition;
-  recognition.start();
-};
-
-
+  // ⏹️ Stop listening
   const stopListening = () => {
-    recognitionRef.current?.stop();
-    setIsRecording(false);
+    stopFnRef.current?.();
   };
 
   return (
