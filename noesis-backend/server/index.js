@@ -81,29 +81,49 @@ app.post("/api/analyze-emotion", async (req, res) => {
 
 async function suggestFromOllama(text) {
   try {
-    const resp = await fetch(process.env.OLLAMA_API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "qwen2.5:latest", // 🔸 change if needed
-        prompt: `Client said: "${text}". Suggest a kind, empathetic and helpful response the agent could say.`,
-      }),
-    });
+    const resp = await fetch(
+      process.env.OLLAMA_API_URL || "https://86y7be6mjfb4mj-11434.proxy.runpod.net/api/generate",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: process.env.OLLAMA_MODEL || "qwen2.5:latest",
+          prompt: `Client said: "${text}". Suggest a kind, empathetic, and helpful response the agent could say.`,
+          stream: true, // 👈 make sure streaming is on
+        }),
+      }
+    );
 
-    const data = await resp.text();
-    if (!data) return "No suggestion generated.";
-    try {
-      // Some Ollama endpoints return JSON lines — unwrap if needed
-      const parsed = JSON.parse(data);
-      return parsed.response || data;
-    } catch {
-      return data;
+    // ✅ Collect streaming chunks
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let fullResponse = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+
+      // Ollama sends multiple JSON lines
+      for (const line of chunk.split("\n")) {
+        if (!line.trim()) continue;
+        try {
+          const json = JSON.parse(line);
+          if (json.response) fullResponse += json.response;
+        } catch {
+          // non-JSON fragment, skip
+        }
+      }
     }
+
+    return fullResponse.trim() || "No suggestion generated.";
   } catch (e) {
-    console.error("Ollama error:", e);
-    return "⚠️ Could not connect to AI.";
+    console.error("❌ Ollama error:", e);
+    return "⚠️ Could not connect to Ollama API.";
   }
 }
+
 
 async function analyzeEmotion(text) {
   try {
