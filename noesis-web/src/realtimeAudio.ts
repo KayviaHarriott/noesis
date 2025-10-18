@@ -46,6 +46,7 @@ export class VoiceSocket {
 
     // We’ll get a small JSON header immediately followed by a binary frame.
     // Browsers deliver frames in order; we buffer the binary in a small queue.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let pendingMeta: any = null;
 
     this.ws.onmessage = async (evt) => {
@@ -68,6 +69,8 @@ export class VoiceSocket {
     };
   }
 
+  //@ts-check
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   send(obj: any) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(obj));
