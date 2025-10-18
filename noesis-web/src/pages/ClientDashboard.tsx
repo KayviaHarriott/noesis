@@ -1,12 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef } from "react";
 import { sendClientMessage, subscribeToAgentReplies } from "../api/clientApi";
 
 // Allow use of the browser SpeechRecognition API in TypeScript
 declare global {
   interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     webkitSpeechRecognition: any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     SpeechRecognition: any;
   }
 
@@ -15,7 +14,6 @@ declare global {
     continuous: boolean;
     interimResults: boolean;
     onresult: ((event: SpeechRecognitionEvent) => void) | null;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onerror: ((event: any) => void) | null;
     onend: (() => void) | null;
     onstart: (() => void) | null;
@@ -53,67 +51,70 @@ export const ClientDashboard = () => {
   };
 
   // 🔊 Speech recognition setup
-  const startListening = () => {
-    const SpeechRecognition =
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      window.SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("Speech Recognition not supported in this browser.");
-      return;
+  // 🔊 Speech recognition setup
+const startListening = () => {
+  const SpeechRecognition =
+    window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert("Speech Recognition not supported in this browser.");
+    return;
+  }
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = "en-US";
+  recognition.interimResults = true;
+  recognition.continuous = true;
+
+  let lastPartial = "";
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+  recognition.onstart = () => setIsRecording(true);
+
+  recognition.onend = () => {
+    setIsRecording(false);
+
+    // 🟢 Send final message once
+    const finalText = partialBuffer.current.trim();
+    if (finalText) {
+      sendClientMessage(finalText);
+      setMessages((prev) => [...prev, `You (final): ${finalText}`]);
+      partialBuffer.current = "";
+    }
+  };
+
+  recognition.onresult = (event: SpeechRecognitionEvent) => {
+    let interimTranscript = "";
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const transcript = event.results[i][0].transcript;
+      if (event.results[i].isFinal) {
+        partialBuffer.current += " " + transcript;
+      } else {
+        interimTranscript += transcript;
+      }
     }
 
-    const recognition = new SpeechRecognition();
-    recognition.lang = "en-US";
-    recognition.interimResults = true;
-    recognition.continuous = true;
+    const currentFull = (partialBuffer.current + " " + interimTranscript).trim();
+    setText(currentFull);
 
-    recognition.onstart = () => setIsRecording(true);
-    recognition.onend = () => {
-      setIsRecording(false);
-      // Send final buffer when done speaking
-      if (partialBuffer.current.trim()) {
-        sendClientMessage(partialBuffer.current.trim());
-        setMessages((prev) => [
-          ...prev,
-          `You (final): ${partialBuffer.current.trim()}`,
-        ]);
-        partialBuffer.current = "";
+    // 🕐 Debounced partial sending (every ~1.2s, only if new content)
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      if (currentFull && currentFull !== lastPartial) {
+        sendClientMessage(currentFull);
+        lastPartial = currentFull;
       }
-    };
-
-    // 🧠 Send partials every 1–2 seconds
-    let lastSent = Date.now();
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let interimTranscript = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          partialBuffer.current += " " + transcript;
-        } else {
-          interimTranscript += transcript;
-        }
-      }
-      setText((partialBuffer.current + " " + interimTranscript).trim());
-
-      // Send streaming transcript
-      if (Date.now() - lastSent > 1200) {
-        const snippet = (partialBuffer.current + " " + interimTranscript).trim();
-        if (snippet) {
-          sendClientMessage(snippet);
-        }
-        lastSent = Date.now();
-      }
-    };
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recognition.onerror = (event: { error: any; }) => {
-      console.error("Speech recognition error:", event.error);
-      setIsRecording(false);
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
+    }, 1200);
   };
+
+  recognition.onerror = (event: { error: any; }) => {
+    console.error("Speech recognition error:", event.error);
+    setIsRecording(false);
+  };
+
+  recognitionRef.current = recognition;
+  recognition.start();
+};
+
 
   const stopListening = () => {
     recognitionRef.current?.stop();
