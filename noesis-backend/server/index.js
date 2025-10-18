@@ -98,28 +98,27 @@ async function suggestFromOllama(text) {
         body: JSON.stringify({
           model: process.env.OLLAMA_MODEL || "qwen2.5:latest",
           // prompt: `Client said: "${text}". Suggest a kind, empathetic, and helpful response the agent could say.`,
-          prompt: `You are coaching a live customer support agent during a call.
+          prompt: `You are guiding a live customer support agent during a call.
 
-Client message:
----
-${text}
----
+            Client message:
+            ---
+            ${text}
+            ---
 
-Produce ONLY these sections (no extra text, no markdown headings other than the labels below):
+            Produce ONLY these sections (no extra text, no markdown headings other than the labels below):
 
-Reply: A single, kind, empathetic, professional sentence (≤ 40 words) the agent can say verbatim right now.
-Plan:
-- 3–5 concrete next steps the agent will take (imperative verbs, one line each).
-Ask: One short clarifying question that moves the issue forward.
-Notes: 1–2 brief reminders for the agent (tone, compliance, or next-action cues).
+            Reply: A single, kind, empathetic, professional sentence (≤ 40 words) the agent can say verbatim right now.
+            Plan:
+            - 3–5 concrete next steps the agent will take (imperative verbs, one line each).
+            Ask: One short clarifying question that moves the issue forward.
+            Notes: 1–2 brief reminders for the agent (tone, compliance, or next-action cues).
 
-Guidelines:
-- Mirror the customer’s goal in the first clause of the Reply; acknowledge emotion without repeating complaints verbatim.
-- Use plain language. No jargon. No apologies more than once.
-- If the client provided any identifiers (order #, email, etc.), include verifying that info in Plan.
-- If the message suggests urgency or frustration, de-escalate first (Reply), then act (Plan).
-- Do NOT invent policies, credits, or data. Do NOT mention AI or internal tools.
-- Keep total output under 120 words.`,
+            Guidelines:
+            - Use plain language. No jargon. No apologies more than once.
+            - If the client provided any identifiers (order #, email, etc.), include verifying that info in Plan.
+            - If the message suggests urgency or frustration, de-escalate first (Reply), then act (Plan).
+            - Do NOT invent policies, credits, or data. Do NOT mention AI or internal tools.
+            - Keep total output under 120 words.`,
           stream: true,
         }),
         // avoid TLS issues on Render
