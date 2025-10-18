@@ -43,13 +43,30 @@ export const fetchAiSuggestion = async (message: string): Promise<string> => {
 
 
 // ...existing imports & socket setup above
-export const fetchEmotion = async (message: string): Promise<{ emotion: string; confidence: number }> => {
+// export const fetchEmotion = async (message: string): Promise<{ emotion: string; confidence: number }> => {
+//   const res = await fetch(`${BACKEND_URL}/api/analyze-emotion`, {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     body: JSON.stringify({ message }),
+//   });
+//   if (!res.ok) return { emotion: "unknown", confidence: 0 };
+//   return res.json();
+// };
+
+export async function fetchEmotion(message: string) {
   const res = await fetch(`${BACKEND_URL}/api/analyze-emotion`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message }), // ✅ use message instead of transcript
   });
-  if (!res.ok) return { emotion: "unknown", confidence: 0 };
+
+  if (!res.ok) {
+    console.error("Emotion API failed:", await res.text());
+    return { emotion: "unknown", confidence: 0 };
+  }
+
   return res.json();
-};
+}
+
+
 
