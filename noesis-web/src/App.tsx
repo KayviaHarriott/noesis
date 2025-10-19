@@ -23,7 +23,7 @@ function App() {
         <Routes>
           <Route path="/client" element={<ClientDashboard />} />
           <Route path="/agent" element={<AgentDashboard />} />
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<AgentDashboard />} />
           {/* <Route path="*" element={<NotFound />} /> */}
         </Routes>
       </div>
