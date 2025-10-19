@@ -4,6 +4,7 @@ import "./App.css";
 import { Routes, Route } from "react-router-dom";
 import { ClientDashboard } from "./pages/ClientDashboard";
 import { AgentDashboard } from "./pages/AgentDashboard";
+import { Home } from "./pages/Home";
 
 function App() {
   // const [count, setCount] = useState(0);
@@ -22,7 +23,7 @@ function App() {
         <Routes>
           <Route path="/client" element={<ClientDashboard />} />
           <Route path="/agent" element={<AgentDashboard />} />
-          <Route path="/" element={<AgentDashboard />} />
+          <Route path="/" element={<Home />} />
           {/* <Route path="*" element={<NotFound />} /> */}
         </Routes>
       </div>
