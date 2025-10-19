@@ -419,7 +419,7 @@ const [relevantDocs, setRelevantDocs] = useState<RelevantDoc[]>([]);
         <div className="col-span-12 md:col-span-8 flex flex-col gap-3 mobile-transcript">
           {/* Emotion bar */}
           <div className="glass-panel p-3">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between">
               {/* <div className="flex items-center gap-4 text-xs">
                 <div>
                   <span className="text-gray-400">Frustration</span>
@@ -445,7 +445,7 @@ const [relevantDocs, setRelevantDocs] = useState<RelevantDoc[]>([]);
                 <span className="text-xs text-gray-400">LIVE</span>
               </div>
             </div>
-            <div className="emotion-indicator" />
+            {/* <div className="emotion-indicator" /> */}
           </div>
 
           {/* Transcript */}
