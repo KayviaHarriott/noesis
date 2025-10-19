@@ -159,7 +159,9 @@ const [relevantDocs, setRelevantDocs] = useState<RelevantDoc[]>([]);
     const isClient = msg.startsWith("Client:");
     const who = isClient ? "Client" : "Agent (You)";
     const color = isClient ? "red" : "blue";
+    const alignment = isClient ? "items-start" : "items-end";
     return (
+      <div key={i} className={`flex flex-col ${alignment}`}>
       <div
         key={i}
         className={`p-2 rounded bg-slate-800/40 border-l-2 border-${color}-500`}
@@ -177,7 +179,7 @@ const [relevantDocs, setRelevantDocs] = useState<RelevantDoc[]>([]);
         <p className="text-sm text-gray-200">
           {msg.replace(/^Client:\s?/i, "").replace(/^You:\s?/i, "")}
         </p>
-      </div>
+      </div></div>
     );
   };
 
