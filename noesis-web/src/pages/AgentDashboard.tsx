@@ -45,7 +45,7 @@ export const AgentDashboard: React.FC = () => {
     confidence: 0.0,
   });
 
-  const handleClick = () => {
+  const handleOpenClient = () => {
     window.open(
       "https://3000-imzbf6tfce7ie2z33lzl2-d0b9e1e2.sandbox.novita.ai/static/agent",
       "_blank",
@@ -53,7 +53,7 @@ export const AgentDashboard: React.FC = () => {
     );
   };
 
-  const handleOpenClient = (e: React.MouseEvent) => {
+  const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     window.open("/client", "_blank", "noopener,noreferrer");
   };
