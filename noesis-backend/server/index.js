@@ -1,13 +1,14 @@
 // index.js
 import express from "express";
 import http from "http";
-import { Server } from "socket.io";
+import https from "https";
 import cors from "cors";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
+import { Server } from "socket.io";
 import { Readable } from "stream";
-import https from "https";
 import { searchRelevantDocs } from "../utils/searchDocs.js";
+
 
 dotenv.config();
 
@@ -49,9 +50,8 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => console.log("🔴 Disconnected:", socket.id));
 });
 
-//-------------- API ROUTES -----------------
 
-// Simple text suggestion (for fetchAiSuggestion)
+// API ROUTES
 app.post("/api/suggest-text", async (req, res) => {
   try {
     const { message } = req.body;
@@ -68,12 +68,11 @@ app.post("/api/suggest-text", async (req, res) => {
   }
 });
 
-// Standalone emotion analyzer
 app.post("/api/analyze-emotion", async (req, res) => {
   const { message } = req.body;
   try {
     const response = await fetch(
-      "https://api-inference.huggingface.co/models/j-hartmann/emotion-english-distilroberta-base",
+      `${process.env.HF_INFERENCE_API_URL}`,
       {
         method: "POST",
         headers: {
@@ -107,15 +106,24 @@ app.post("/api/analyze-emotion", async (req, res) => {
   }
 });
 
+app.post("/api/searchDocs", async (req, res) => {
+  try {
+    const { transcript } = req.body;
+    const results = await searchRelevantDocs(transcript);
+    // const res = await searchRelevantDocs(transcript);
+    res.json(results);
+  } catch (err) {
+    console.error("Error searching docs:", err);
+    res.status(500).json({ error: "Failed to search docs" });
+  }
+});
 
 
-// -------------- HELPERS -----------------
-
+// HELPERS
 async function suggestFromOllama(text) {
   try {
     const resp = await fetch(
-      process.env.OLLAMA_API_URL ||
-        "https://86y7be6mjfb4mj-11434.proxy.runpod.net/api/generate",
+      process.env.OLLAMA_API_URL,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -177,21 +185,6 @@ async function suggestFromOllama(text) {
     return "⚠️ Could not connect to Ollama API.";
   }
 }
-
-
-app.post("/api/searchDocs", async (req, res) => {
-  try {
-    const { transcript } = req.body;
-    const results = await searchRelevantDocs(transcript);
-    // const res = await searchRelevantDocs(transcript);
-    res.json(results);
-  } catch (err) {
-    console.error("Error searching docs:", err);
-    res.status(500).json({ error: "Failed to search docs" });
-  }
-});
-
-
 
 async function analyzeEmotion(text) {
   try {
