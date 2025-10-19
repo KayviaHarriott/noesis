@@ -4,7 +4,7 @@ import "./App.css";
 import { Routes, Route } from "react-router-dom";
 import { ClientDashboard } from "./pages/ClientDashboard";
 import { AgentDashboard } from "./pages/AgentDashboard";
-import { Home } from "./pages/Home";
+// import { Home } from "./pages/Home";
 
 function App() {
   // const [count, setCount] = useState(0);
