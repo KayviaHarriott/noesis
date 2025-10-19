@@ -19,7 +19,7 @@ export const AgentDashboard = () => {
   // Live metrics (demo-friendly)
   const [empathy, setEmpathy] = useState(8.4);
   const [clock, setClock] = useState(0); // seconds in-call
-  const [emotions, setEmotions] = useState({ frustration: 75, confusion: 42, hope: 28 });
+  const [emotions, setEmotions] = useState({ frustration: 0, confusion: 0, hope: 0 });
   const [sentiment, setSentiment] = useState<{ emotion: string; confidence: number }>({ emotion: "Frustrated", confidence: 0.8 });
 
   const transcriptRef = useRef<HTMLDivElement>(null);
