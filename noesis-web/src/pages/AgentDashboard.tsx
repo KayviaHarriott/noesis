@@ -40,6 +40,9 @@ const [relevantDocs, setRelevantDocs] = useState<RelevantDoc[]>([]);
 
   const transcriptRef = useRef<HTMLDivElement>(null);
 
+  //Customer Name Unknown 
+  const [customerName, setCustomerName] = useState<string>("Unknown");
+
   
   // In your useEffect (after setting suggestion/sentiment)
 
@@ -59,6 +62,22 @@ const [relevantDocs, setRelevantDocs] = useState<RelevantDoc[]>([]);
     localStorage.setItem("theme", next ? "light" : "dark");
   };
 
+  function extractNameFromMessage(message: string): string | null {
+  // 🧠 Looks for patterns like “my name is <something>” or “I am <something>”
+  const patterns = [
+    /my name is\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i, // e.g. "my name is Dwight" or "my name is Dwight Miller"
+    /\bi am\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,    // e.g. "I am Dwight"
+    /\bthis is\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i, // e.g. "This is Dwight"
+  ];
+
+  for (const pattern of patterns) {
+    const match = message.match(pattern);
+    if (match && match[1]) return match[1].trim();
+  }
+  return null;
+}
+
+
   useEffect(() => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const unsubscribe = subscribeToClientMessages((data: any) => {
@@ -68,6 +87,16 @@ const [relevantDocs, setRelevantDocs] = useState<RelevantDoc[]>([]);
         : data?.transcript || JSON.stringify(data);
 
     setMessages((prev) => [...prev, `Client: ${msgText}`]);
+
+    // 🧩 Try to detect and update the customer's name automatically
+if (customerName === "Unknown") {
+  const detectedName = extractNameFromMessage(msgText);
+  if (detectedName) {
+    setCustomerName(detectedName);
+    console.log("🧠 Detected customer name:", detectedName);
+  }
+}
+
 
     // Scroll transcript
     setTimeout(
@@ -332,13 +361,13 @@ const [relevantDocs, setRelevantDocs] = useState<RelevantDoc[]>([]);
             </div>
             <div className="flex items-center gap-2 mb-3">
               <img
-                src="https://ui-avatars.com/api/?name=Michael+C&background=06b6d4&color=fff&size=32"
+                src="https://ui-avatars.com/api/?name=${encodeURIComponent(customerName)}&background=06b6d4&color=fff&size=32"
                 className="w-8 h-8 rounded-full ring-1 ring-cyan-500"
                 alt="Customer"
               />
               <div>
                 <div className="font-semibold text-sm text-cyan-300">
-                  Michael C.
+                  {customerName}
                 </div>
                 <div className="text-xs text-gray-500">Premium • 3.5yr</div>
               </div>
