@@ -18,7 +18,7 @@ export const Home = () => {
             </a>
 
             <a
-              href="http://noesisbpo.netlify.app/"
+              href="http://noesisbpo.netlify.app/client"
               target="_blank"
               className="flex-1 bg-green-600 text-white py-4 rounded-lg text-lg font-semibold hover:bg-green-700 transition"
             >
