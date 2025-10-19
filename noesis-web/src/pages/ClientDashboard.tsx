@@ -86,7 +86,11 @@ export const ClientDashboard = () => {
         }
       }
 
-      const currentFull = (partialBuffer.current + " " + interimTranscript).trim();
+      const currentFull = (
+        partialBuffer.current +
+        " " +
+        interimTranscript
+      ).trim();
       setText(currentFull);
 
       // 🕐 Debounced partial sending (~1.2s)
@@ -100,7 +104,7 @@ export const ClientDashboard = () => {
       }, 1200);
     };
 
-    recognition.onerror = (event: { error: any; }) => {
+    recognition.onerror = (event: { error: any }) => {
       console.error("Speech recognition error:", event.error);
       setIsRecording(false);
     };
@@ -115,7 +119,9 @@ export const ClientDashboard = () => {
           sendClientMessage(finalText);
           setMessages((prev) => [...prev, `You (final): ${finalText}`]);
           lastSentRef.current = finalText;
+          setText(""); // ✅ clear textbox after final message
         }
+
         partialBuffer.current = "";
       }
     };
@@ -139,7 +145,9 @@ export const ClientDashboard = () => {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">Client Dashboard</h1>
-      <p>Speak or type your message below. Your voice will be transcribed live.</p>
+      <p>
+        Speak or type your message below. Your voice will be transcribed live.
+      </p>
 
       <div className="p-4">
         <h2>Client Page</h2>

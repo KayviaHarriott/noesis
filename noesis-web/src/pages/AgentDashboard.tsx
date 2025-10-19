@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   sendAgentReply,
@@ -6,24 +7,23 @@ import {
   fetchRelevantDocs,
 } from "../api/agentApi";
 
-// If your app doesn't already load Font Awesome globally, uncomment this line:
-// import "@fortawesome/fontawesome-free/css/all.min.css";
-
-// NOTE: Tailwind utility classes are used throughout. Ensure Tailwind is configured in your app.
-// Custom styles specific to the agent.html look are injected at the bottom via a <style> tag.
-
 // Types
-
 type RelevantDoc = {
   title: string;
   snippet: string;
   score?: string;
 };
 
+type ChatMessage = {
+  text: string;
+  sender: "client" | "agent";
+  sentiment?: { emotion: string; confidence: number };
+};
+
 // Default export for easy import in your React router/pages
 export const AgentDashboard: React.FC = () => {
   // Chat + AI suggestion
-  const [messages, setMessages] = useState<string[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [reply, setReply] = useState("");
   const [suggestion, setSuggestion] = useState<string>("");
   const [loadingSuggestion, setLoadingSuggestion] = useState(false);
@@ -36,10 +36,10 @@ export const AgentDashboard: React.FC = () => {
   const [clock, setClock] = useState(0); // seconds in-call
   const [relevantDocs, setRelevantDocs] = useState<RelevantDoc[]>([]);
 
-  const [sentiment, setSentiment] = useState<{
-    emotion: string;
-    confidence: number;
-  }>({ emotion: "Frustrated", confidence: 0.8 });
+  const [sentiment, setSentiment] = useState<{ emotion: string; confidence: number }>({
+    emotion: "",
+    confidence: 0.0,
+  });
 
   const transcriptRef = useRef<HTMLDivElement>(null);
 
@@ -61,39 +61,42 @@ export const AgentDashboard: React.FC = () => {
 
   // Subscribe to client messages and drive AI flows
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const unsubscribe = subscribeToClientMessages((data: any) => {
+    const unsubscribe = subscribeToClientMessages(async (data: any) => {
       const msgText = typeof data === "string" ? data : data?.transcript || JSON.stringify(data);
 
-      setMessages((prev) => [...prev, `Client: ${msgText}`]);
+      // ✅ Add message with sentiment info
+      setMessages((prev) => [
+        ...prev,
+        {
+          text: msgText,
+          sender: "client",
+          sentiment: {
+            emotion: data?.emotion ?? "Neutral",
+            confidence: data?.confidence ?? 0.5,
+          },
+        },
+      ]);
 
       // Scroll transcript
       setTimeout(() => transcriptRef.current?.scrollTo({ top: 999999, behavior: "smooth" }), 50);
 
-      // ✅ IIFE for async work
-      (async () => {
-        if (data?.suggestion && data?.emotion) {
-          setSuggestion(data.suggestion);
-          setSentiment({ emotion: data.emotion, confidence: data.confidence ?? 0 });
-          try {
-            const docs = await fetchRelevantDocs(msgText);
-            setRelevantDocs(docs);
-          } catch (err) {
-            console.error("Error fetching relevant docs:", err);
-          }
-        } else {
-          setLoadingSuggestion(true);
-          try {
-            const ai = await fetchAiSuggestion(msgText);
-            setSuggestion(ai.suggestion);
-            setSentiment({ emotion: ai.emotion, confidence: ai.confidence });
-            const docs = await fetchRelevantDocs(msgText);
-            setRelevantDocs(docs);
-          } finally {
-            setLoadingSuggestion(false);
-          }
-        }
-      })();
+      // Async suggestion + docs fetch
+      try {
+        setLoadingSuggestion(true);
+        const ai = data?.suggestion && data?.emotion
+          ? { suggestion: data.suggestion, emotion: data.emotion, confidence: data.confidence ?? 0 }
+          : await fetchAiSuggestion(msgText);
+
+        setSuggestion(ai.suggestion);
+        setSentiment({ emotion: ai.emotion, confidence: ai.confidence });
+
+        const docs = await fetchRelevantDocs(msgText);
+        setRelevantDocs(docs);
+      } catch (err) {
+        console.error("Error fetching AI or docs:", err);
+      } finally {
+        setLoadingSuggestion(false);
+      }
     });
 
     return () => unsubscribe();
@@ -123,7 +126,7 @@ export const AgentDashboard: React.FC = () => {
   const handleSend = () => {
     if (!reply.trim()) return;
     sendAgentReply(reply);
-    setMessages((prev) => [...prev, `You: ${reply}`]);
+    setMessages((prev) => [...prev, { text: reply, sender: "agent" }]);
     setReply("");
     setTimeout(() => transcriptRef.current?.scrollTo({ top: 999999, behavior: "smooth" }), 50);
   };
@@ -132,25 +135,50 @@ export const AgentDashboard: React.FC = () => {
     if (suggestion) setReply(suggestion);
   };
 
-  const bubble = (msg: string, i: number) => {
-    const isClient = msg.startsWith("Client:");
-    const who = isClient ? "Client" : "Agent (You)";
-    const color = isClient ? "red" : "blue";
-    const alignment = isClient ? "items-start" : "items-end";
-    return (
-      <div key={i} className={`flex flex-col ${alignment}`}>
-        <div className={`p-2 rounded bg-slate-800/40 border-l-2 border-${color}-500` as any}>
-          <div className="flex items-center justify-between mb-1">
-            <span className={`text-xs font-semibold text-${isClient ? "red" : "blue"}-300` as any}>{who}</span>
-            <span className="text-xs text-gray-500">{mmss}</span>
-          </div>
-          <p className="text-sm text-gray-200">
-            {msg.replace(/^Client:\s?/i, "").replace(/^You:\s?/i, "")}
-          </p>
+  const bubble = (msg: ChatMessage, i: number) => {
+  const isClient = msg.sender === "client";
+  const who = isClient ? "Client" : "Agent (You)";
+  const color = isClient ? "#ef4444" : "#3b82f6"; // Tailwind red-500 / blue-500
+  const textColor = isClient ? "#fca5a5" : "#93c5fd"; // red-300 / blue-300
+  const alignment = isClient ? "items-start" : "items-end";
+
+  return (
+    <div key={i} className={`flex flex-col ${alignment}`}>
+      <div
+        className="p-2 rounded bg-slate-800/40 border-l-2"
+        style={{ borderLeftColor: color }}
+      >
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-xs font-semibold" style={{ color: textColor }}>
+            {who}
+          </span>
+          <span className="text-xs text-gray-500">{mmss}</span>
         </div>
+
+        <p className="text-sm text-gray-200">{msg.text}</p>
+
+        {isClient && msg.sentiment && (
+          <div
+            className="mt-1 text-xs italic"
+            style={{
+              color:
+                msg.sentiment.emotion === "Frustrated"
+                  ? "#f87171" // red-400
+                  : msg.sentiment.emotion === "Happy"
+                  ? "#4ade80" // green-400
+                  : "#facc15", // yellow-400
+            }}
+          >
+            😊 Sentiment: {msg.sentiment.emotion} (
+            {Math.round(msg.sentiment.confidence * 100)}%)
+          </div>
+        )}
       </div>
-    );
-  };
+    </div>
+  );
+};
+
+
 
   return (
     <div className="p-3">
