@@ -25,21 +25,19 @@ export function subscribeToClientMessages(callback: (message: string) => void) {
 //   return data.suggestion || "No suggestion available";
 // };
 
-export const fetchAiSuggestion = async (message: string): Promise<string> => {
+export const fetchAiSuggestion = async (message: string) => {
   const res = await fetch(`${BACKEND_URL}/api/suggest-text`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ transcript: message }),
   });
 
-  if (!res.ok) {
-    console.error("AI suggestion request failed:", await res.text());
-    return "⚠️ No suggestion available.";
-  }
+  if (!res.ok) throw new Error("AI suggestion request failed");
 
-  const data = await res.json();
-  return data.suggestion || "No suggestion available.";
+  return res.json(); // 👈 Return the whole JSON
 };
+
+
 
 
 // ...existing imports & socket setup above
@@ -53,15 +51,15 @@ export const fetchAiSuggestion = async (message: string): Promise<string> => {
 //   return res.json();
 // };
 
-export async function fetchEmotion(text: string) {
-  const res = await fetch(`${BACKEND_URL}/api/analyze-emotion`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message: text }),
-  });
-  if (!res.ok) return { emotion: "unknown", confidence: 0, scores: {} };
-  return res.json();
-}
+// export async function fetchEmotion(text: string) {
+//   const res = await fetch(`${BACKEND_URL}/api/analyze-emotion`, {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     body: JSON.stringify({ message: text }),
+//   });
+//   if (!res.ok) return { emotion: "unknown", confidence: 0, scores: {} };
+//   return res.json();
+// }
 
 
 

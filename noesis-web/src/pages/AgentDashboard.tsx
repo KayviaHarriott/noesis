@@ -3,7 +3,7 @@ import {
   sendAgentReply,
   subscribeToClientMessages,
   fetchAiSuggestion,
-  fetchEmotion,
+  // fetchEmotion,
 } from "../api/agentApi";
 
 export const AgentDashboard = () => {
@@ -19,8 +19,15 @@ export const AgentDashboard = () => {
   // Live metrics (demo-friendly)
   const [empathy, setEmpathy] = useState(8.4);
   const [clock, setClock] = useState(0); // seconds in-call
-  const [emotions, setEmotions] = useState({ frustration: 0, confusion: 0, hope: 0 });
-  const [sentiment, setSentiment] = useState<{ emotion: string; confidence: number }>({ emotion: "Frustrated", confidence: 0.8 });
+  // const [emotions, setEmotions] = useState({
+  //   frustration: 0,
+  //   confusion: 0,
+  //   hope: 0,
+  // });
+  const [sentiment, setSentiment] = useState<{
+    emotion: string;
+    confidence: number;
+  }>({ emotion: "Frustrated", confidence: 0.8 });
 
   const transcriptRef = useRef<HTMLDivElement>(null);
 
@@ -41,9 +48,10 @@ export const AgentDashboard = () => {
   };
 
   // Subscribe to client messages and fetch AI suggestion + emotion
- useEffect(() => {
+  useEffect(() => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const unsubscribe = subscribeToClientMessages((data: any) => {
+    // Handle both string and structured JSON
     const msgText =
       typeof data === "string"
         ? data
@@ -52,58 +60,32 @@ export const AgentDashboard = () => {
     setMessages((prev) => [...prev, `Client: ${msgText}`]);
 
     // Scroll transcript
-    setTimeout(() => transcriptRef.current?.scrollTo({ top: 999999, behavior: "smooth" }), 50);
+    setTimeout(
+      () =>
+        transcriptRef.current?.scrollTo({ top: 999999, behavior: "smooth" }),
+      50
+    );
 
-    // Fire both calls (AI suggestion + emotion) in parallel
-    const run = async () => {
-      try {
-        setLoadingSuggestion(true);
-        const [ai, emo] = await Promise.allSettled([
-          fetchAiSuggestion(msgText),
-          fetchEmotion(msgText),
-        ]);
-        if (ai.status === "fulfilled") {
-          setSuggestion(ai.value);
-        } else {
-          setSuggestion("⚠️ Could not load AI suggestion");
-        }
-        if (emo.status === "fulfilled") {
-  const { emotion, confidence, scores = {} } = emo.value;
-
-  setSentiment({
-    emotion: emotion
-      ? emotion[0].toUpperCase() + emotion.slice(1)
-      : "Unknown",
-    confidence: confidence ?? 0,
-  });
-
-  // Calculate the target (raw) values first
-  // const targetFrustration = Math.round(((scores.anger ?? 0) + (scores.sadness ?? 0)) * 100);
-  // const targetConfusion = Math.round(((scores.fear ?? 0) + (scores.surprise ?? 0)) * 100);
-  // const targetHope = Math.round(((scores.joy ?? 0) + (scores.trust ?? 0)) * 100);
-
-  // Smooth transitions instead of jumping to the new values instantly
-  setEmotions({
-  frustration: Math.round(((scores.anger ?? 0) + (scores.sadness ?? 0)) * 100),
-  confusion: Math.round(((scores.fear ?? 0) + (scores.surprise ?? 0)) * 100),
-  hope: Math.round(((scores.joy ?? 0) + (scores.trust ?? 0)) * 100),
-});
-
-
-  // Empathy adjusts inversely to frustration, with safe bounds
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  setEmpathy(_prev => {
-    const targetEmpathy = 9.5 - (scores.anger ?? 0) * 3;
-    return Math.max(6.8, Math.min(9.6, +targetEmpathy.toFixed(1)));
-  });
-}
-
-
-      } finally {
-        setLoadingSuggestion(false);
-      }
-    };
-    run();
+    // ✅ If backend already sends structured data, update directly
+    if (data?.suggestion && data?.emotion) {
+      setSuggestion(data.suggestion);
+      setSentiment({
+        emotion: data.emotion,
+        confidence: data.confidence ?? 0,
+      });
+    } else {
+      // fallback: fetch manually if backend didn’t include it
+      setLoadingSuggestion(true);
+      fetchAiSuggestion(msgText)
+        .then((ai) => {
+          setSuggestion(ai.suggestion);
+          setSentiment({
+            emotion: ai.emotion,
+            confidence: ai.confidence,
+          });
+        })
+        .finally(() => setLoadingSuggestion(false));
+    }
   });
 
   return () => unsubscribe();
@@ -136,7 +118,11 @@ export const AgentDashboard = () => {
     sendAgentReply(reply);
     setMessages((prev) => [...prev, `You: ${reply}`]);
     setReply("");
-    setTimeout(() => transcriptRef.current?.scrollTo({ top: 999999, behavior: "smooth" }), 50);
+    setTimeout(
+      () =>
+        transcriptRef.current?.scrollTo({ top: 999999, behavior: "smooth" }),
+      50
+    );
   };
 
   const useSuggestion = () => {
@@ -148,12 +134,23 @@ export const AgentDashboard = () => {
     const who = isClient ? "Client" : "Agent (You)";
     const color = isClient ? "red" : "blue";
     return (
-      <div key={i} className={`p-2 rounded bg-slate-800/40 border-l-2 border-${color}-500`}>
+      <div
+        key={i}
+        className={`p-2 rounded bg-slate-800/40 border-l-2 border-${color}-500`}
+      >
         <div className="flex items-center justify-between mb-1">
-          <span className={`text-xs font-semibold text-${isClient ? "red" : "blue"}-300`}>{who}</span>
+          <span
+            className={`text-xs font-semibold text-${
+              isClient ? "red" : "blue"
+            }-300`}
+          >
+            {who}
+          </span>
           <span className="text-xs text-gray-500">{mmss}</span>
         </div>
-        <p className="text-sm text-gray-200">{msg.replace(/^Client:\s?/i, "").replace(/^You:\s?/i, "")}</p>
+        <p className="text-sm text-gray-200">
+          {msg.replace(/^Client:\s?/i, "").replace(/^You:\s?/i, "")}
+        </p>
       </div>
     );
   };
@@ -165,29 +162,82 @@ export const AgentDashboard = () => {
         <div className="flex items-center justify-between mobile-header">
           <div className="flex items-center gap-3 mobile-header-left">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 via-blue-500 to-blue-400 flex items-center justify-center relative overflow-hidden shadow-lg shadow-blue-500/50">
-              <svg className="w-6 h-6 text-white relative z-10" viewBox="0 0 24 24" fill="none">
+              <svg
+                className="w-6 h-6 text-white relative z-10"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
                 <circle cx="6" cy="6" r="2.5" fill="currentColor" />
                 <circle cx="18" cy="6" r="2.5" fill="currentColor" />
                 <circle cx="6" cy="18" r="2.5" fill="currentColor" />
                 <circle cx="18" cy="18" r="2.5" fill="currentColor" />
-                <circle cx="12" cy="12" r="2" fill="currentColor" opacity="0.7" />
-                <line x1="6" y1="6" x2="12" y2="12" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
-                <line x1="18" y1="6" x2="12" y2="12" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
-                <line x1="6" y1="18" x2="12" y2="12" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
-                <line x1="18" y1="18" x2="12" y2="12" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
-                <path d="M6 6 L6 18 M18 6 L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="2"
+                  fill="currentColor"
+                  opacity="0.7"
+                />
+                <line
+                  x1="6"
+                  y1="6"
+                  x2="12"
+                  y2="12"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  opacity="0.6"
+                />
+                <line
+                  x1="18"
+                  y1="6"
+                  x2="12"
+                  y2="12"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  opacity="0.6"
+                />
+                <line
+                  x1="6"
+                  y1="18"
+                  x2="12"
+                  y2="12"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  opacity="0.6"
+                />
+                <line
+                  x1="18"
+                  y1="18"
+                  x2="12"
+                  y2="12"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  opacity="0.6"
+                />
+                <path
+                  d="M6 6 L6 18 M18 6 L18 18"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
               </svg>
               <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
             </div>
             <div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-blue-500 to-blue-400 bg-clip-text text-transparent">Noesis</h1>
-              <p className="text-xs text-gray-500">Real-time Call Intelligence</p>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-blue-500 to-blue-400 bg-clip-text text-transparent">
+                Noesis
+              </h1>
+              <p className="text-xs text-gray-500">
+                Real-time Call Intelligence
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-6 mobile-header-right">
             <div className="text-center">
               <div className="text-xs text-gray-500">Empathy</div>
-              <div className="text-2xl font-bold text-blue-400">{empathy.toFixed(1)}</div>
+              <div className="text-2xl font-bold text-blue-400">
+                {empathy.toFixed(1)}
+              </div>
             </div>
             <div className="text-center">
               <div className="text-xs text-gray-500">Time</div>
@@ -198,14 +248,21 @@ export const AgentDashboard = () => {
               className="theme-toggle w-9 h-9 rounded-lg bg-slate-800/40 hover:bg-slate-700/60 flex items-center justify-center border border-blue-500/20"
               aria-label="Toggle theme"
             >
-              <i className={`fas ${isLight ? "fa-moon text-blue-600" : "fa-sun text-yellow-400"} text-sm`} />
+              <i
+                className={`fas ${
+                  isLight ? "fa-moon text-blue-600" : "fa-sun text-yellow-400"
+                } text-sm`}
+              />
             </button>
           </div>
         </div>
       </div>
 
       {/* Main grid */}
-      <div className="grid grid-cols-12 gap-3 mobile-grid" style={{ height: "calc(100vh - 120px)" }}>
+      <div
+        className="grid grid-cols-12 gap-3 mobile-grid"
+        style={{ height: "calc(100vh - 120px)" }}
+      >
         {/* LEFT: Info */}
         <div className="col-span-12 md:col-span-2 space-y-3 overflow-y-auto scrollbar-thin pr-1 mobile-info-cards">
           {/* Agent */}
@@ -221,7 +278,9 @@ export const AgentDashboard = () => {
                 alt="Agent"
               />
               <div>
-                <div className="font-semibold text-sm text-blue-300">Sarah J.</div>
+                <div className="font-semibold text-sm text-blue-300">
+                  Sarah J.
+                </div>
                 <div className="text-xs text-gray-500">ID: 2847</div>
               </div>
             </div>
@@ -250,7 +309,9 @@ export const AgentDashboard = () => {
                 alt="Customer"
               />
               <div>
-                <div className="font-semibold text-sm text-cyan-300">Michael C.</div>
+                <div className="font-semibold text-sm text-cyan-300">
+                  Michael C.
+                </div>
                 <div className="text-xs text-gray-500">Premium • 3.5yr</div>
               </div>
             </div>
@@ -262,7 +323,10 @@ export const AgentDashboard = () => {
               <div className="flex justify-between">
                 <span className="text-gray-400">Sentiment</span>
                 <span className="text-yellow-400 font-semibold">
-                  {sentiment.emotion} {sentiment.confidence ? `(${Math.round(sentiment.confidence * 100)}%)` : ""}
+                  {sentiment.emotion}{" "}
+                  {sentiment.confidence
+                    ? `(${Math.round(sentiment.confidence * 100)}%)`
+                    : ""}
                 </span>
               </div>
             </div>
@@ -277,7 +341,11 @@ export const AgentDashboard = () => {
             <div className="flex items-center h-12 bg-slate-900/30 rounded mb-2 px-2">
               <div className="flex items-end gap-0.5 w-full justify-between">
                 {Array.from({ length: 25 }).map((_, i) => (
-                  <div key={i} className="wave-bar" style={{ animationDelay: `${(i % 12) * 0.1}s` }} />
+                  <div
+                    key={i}
+                    className="wave-bar"
+                    style={{ animationDelay: `${(i % 12) * 0.1}s` }}
+                  />
                 ))}
               </div>
             </div>
@@ -285,27 +353,38 @@ export const AgentDashboard = () => {
               <div>
                 <div className="flex justify-between mb-1">
                   <span className="text-gray-400">Stress Level</span>
-                  <span className="text-orange-400 font-semibold">{emotions.frustration >= 70 ? "High" : "Moderate"}</span>
+                  <span className="text-orange-400 font-semibold">
+                    {/* {emotions.frustration >= 70 ? "High" : "Moderate"} */}
+                  </span>
                 </div>
                 <div className="w-full bg-gray-800 rounded-full h-1">
-<div
-  className="bg-orange-500 h-1 rounded-full"
-  style={{ width: `${Math.min(100, Math.max(0, emotions.frustration))}%` }}
-/>
+                  {/* <div
+                    className="bg-orange-500 h-1 rounded-full"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        Math.max(0, emotions.frustration)
+                      )}%`,
+                    }}
+                  /> */}
                 </div>
               </div>
-              <div>
+              {/* <div>
                 <div className="flex justify-between mb-1">
                   <span className="text-gray-400">Clarity</span>
-                  <span className="text-green-400 font-semibold">{emotions.hope > 30 ? "Good" : "Fair"}</span>
+                  <span className="text-green-400 font-semibold">
+                    {emotions.hope > 30 ? "Good" : "Fair"}
+                  </span>
                 </div>
                 <div className="w-full bg-gray-800 rounded-full h-1">
-<div
-  className="bg-green-500 h-1 rounded-full"
-  style={{ width: `${Math.min(100, Math.max(0, emotions.hope))}%` }}
-/>
+                  <div
+                    className="bg-green-500 h-1 rounded-full"
+                    style={{
+                      width: `${Math.min(100, Math.max(0, emotions.hope))}%`,
+                    }}
+                  />
                 </div>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>
@@ -315,20 +394,26 @@ export const AgentDashboard = () => {
           {/* Emotion bar */}
           <div className="glass-panel p-3">
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-4 text-xs">
+              {/* <div className="flex items-center gap-4 text-xs">
                 <div>
                   <span className="text-gray-400">Frustration</span>
-                  <span className="ml-2 font-bold text-red-400">{Math.round(emotions.frustration)}%</span>
+                  <span className="ml-2 font-bold text-red-400">
+                    {Math.round(emotions.frustration)}%
+                  </span>
                 </div>
                 <div>
                   <span className="text-gray-400">Confusion</span>
-                  <span className="ml-2 font-bold text-yellow-400">{Math.round(emotions.confusion)}%</span>
+                  <span className="ml-2 font-bold text-yellow-400">
+                    {Math.round(emotions.confusion)}%
+                  </span>
                 </div>
                 <div>
                   <span className="text-gray-400">Hope</span>
-                  <span className="ml-2 font-bold text-green-400">{Math.round(emotions.hope)}%</span>
+                  <span className="ml-2 font-bold text-green-400">
+                    {Math.round(emotions.hope)}%
+                  </span>
                 </div>
-              </div>
+              </div> */}
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                 <span className="text-xs text-gray-400">LIVE</span>
@@ -346,16 +431,27 @@ export const AgentDashboard = () => {
               </div>
             </div>
 
-            <div ref={transcriptRef} className="flex-1 overflow-y-auto scrollbar-thin space-y-2">
+            <div
+              ref={transcriptRef}
+              className="flex-1 overflow-y-auto scrollbar-thin space-y-2"
+            >
               {messages.map((m, i) => bubble(m, i))}
               {loadingSuggestion && (
                 <div className="p-2 rounded bg-slate-800/40 border-l-2 border-blue-500">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-blue-300">Agent (You)</span>
+                    <span className="text-xs font-semibold text-blue-300">
+                      Agent (You)
+                    </span>
                     <div className="flex gap-1 ml-2">
                       <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" />
-                      <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }} />
-                      <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }} />
+                      <div
+                        className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.1s" }}
+                      />
+                      <div
+                        className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.2s" }}
+                      />
                     </div>
                   </div>
                 </div>
@@ -372,7 +468,10 @@ export const AgentDashboard = () => {
                 placeholder="Type reply..."
               />
               <div className="flex gap-2">
-                <button className="bg-green-500 text-white px-4 py-2 mt-2 rounded" onClick={handleSend}>
+                <button
+                  className="bg-green-500 text-white px-4 py-2 mt-2 rounded"
+                  onClick={handleSend}
+                >
                   Send to Client
                 </button>
                 <button
@@ -433,7 +532,9 @@ export const AgentDashboard = () => {
               ) : suggestion ? (
                 <p className="text-gray-200">{suggestion}</p>
               ) : (
-                <p className="text-gray-400 italic">Waiting for client message...</p>
+                <p className="text-gray-400 italic">
+                  Waiting for client message...
+                </p>
               )}
               <button
                 className="w-full px-2 py-1 mt-3 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs font-semibold disabled:bg-gray-500"
@@ -445,13 +546,15 @@ export const AgentDashboard = () => {
             </div>
 
             {/* Tone guidance (static tips; your emotion drives emphasis elsewhere) */}
-            <div className="p-2 rounded bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/30">
+            {/* <div className="p-2 rounded bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/30">
               <div className="flex items-start gap-2">
                 <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
                   <i className="fas fa-volume-down text-white text-xs" />
                 </div>
                 <div className="flex-1">
-                  <div className="text-xs font-semibold text-blue-300 mb-1">Adjust Tone</div>
+                  <div className="text-xs font-semibold text-blue-300 mb-1">
+                    Adjust Tone
+                  </div>
                   <ul className="text-xs text-gray-300 space-y-1">
                     <li>• Slow speech by 15%</li>
                     <li>• Use warmer tone</li>
@@ -459,20 +562,72 @@ export const AgentDashboard = () => {
                   </ul>
                 </div>
               </div>
+            </div> */}
+          </div>
+
+          <div className="glass-panel p-3">
+            <div className="flex items-center gap-2 mb-3">
+              <i className="fas fa-lightbulb text-yellow-400 text-sm" />
+              <h3 className="font-semibold text-sm">Relevant Documents</h3>
             </div>
+
+            {/* Main AI suggestion */}
+            <div className="border rounded p-3 bg-gray-50/5 mb-3 min-h-[120px]">
+              {loadingSuggestion ? (
+                <p className="text-gray-400 italic">Generating suggestion...</p>
+              ) : suggestion ? (
+                <p className="text-gray-200">{suggestion}</p>
+              ) : (
+                <p className="text-gray-400 italic">
+                  Waiting for client message...
+                </p>
+              )}
+              <button
+                className="w-full px-2 py-1 mt-3 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs font-semibold disabled:bg-gray-500"
+                onClick={useSuggestion}
+                disabled={!suggestion || loadingSuggestion}
+              >
+                Open Document
+              </button>
+            </div>
+
+            {/* Tone guidance (static tips; your emotion drives emphasis elsewhere) */}
+            {/* <div className="p-2 rounded bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/30">
+              <div className="flex items-start gap-2">
+                <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+                  <i className="fas fa-volume-down text-white text-xs" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-xs font-semibold text-blue-300 mb-1">
+                    Adjust Tone
+                  </div>
+                  <ul className="text-xs text-gray-300 space-y-1">
+                    <li>• Slow speech by 15%</li>
+                    <li>• Use warmer tone</li>
+                    <li>• Lower volume slightly</li>
+                  </ul>
+                </div>
+              </div>
+            </div> */}
           </div>
 
           {/* Quick Metrics */}
           <div className="glass-panel p-3">
-            <div className="text-xs font-semibold text-gray-400 mb-2">This Call</div>
+            <div className="text-xs font-semibold text-gray-400 mb-2">
+              This Call
+            </div>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="text-center p-2 bg-slate-800/30 rounded">
                 <div className="text-gray-400 text-xs">Response Quality</div>
-                <div className="text-lg font-bold text-blue-400">{Math.min(100, Math.round(84 + empathy * 1))}%</div>
+                <div className="text-lg font-bold text-blue-400">
+                  {Math.min(100, Math.round(84 + empathy * 1))}%
+                </div>
               </div>
               <div className="text-center p-2 bg-slate-800/30 rounded">
                 <div className="text-gray-400 text-xs">Predicted CSAT</div>
-                <div className="text-lg font-bold text-yellow-400">{(6.5 + (empathy - 7.5)).toFixed(1)}</div>
+                <div className="text-lg font-bold text-yellow-400">
+                  {(6.5 + (empathy - 7.5)).toFixed(1)}
+                </div>
               </div>
             </div>
           </div>
