@@ -169,7 +169,7 @@ export const AgentDashboard: React.FC = () => {
                   : "#facc15", // yellow-400
             }}
           >
-            😊 Sentiment: {msg.sentiment.emotion} (
+            Sentiment: {msg.sentiment.emotion} (
             {Math.round(msg.sentiment.confidence * 100)}%)
           </div>
         )}
