@@ -53,20 +53,16 @@ export const fetchAiSuggestion = async (message: string): Promise<string> => {
 //   return res.json();
 // };
 
-export async function fetchEmotion(message: string) {
+export async function fetchEmotion(text: string) {
   const res = await fetch(`${BACKEND_URL}/api/analyze-emotion`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message }), // ✅ use message instead of transcript
+    body: JSON.stringify({ message: text }),
   });
-
-  if (!res.ok) {
-    console.error("Emotion API failed:", await res.text());
-    return { emotion: "unknown", confidence: 0 };
-  }
-
+  if (!res.ok) return { emotion: "unknown", confidence: 0, scores: {} };
   return res.json();
 }
+
 
 
 

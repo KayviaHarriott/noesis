@@ -69,17 +69,43 @@ app.post("/api/suggest-text", async (req, res) => {
 
 // Standalone emotion analyzer
 app.post("/api/analyze-emotion", async (req, res) => {
+  const { message } = req.body;
   try {
-    const { message } = req.body;
-    if (!message) return res.status(400).json({ error: "Text required" });
+    const response = await fetch(
+      "https://api-inference.huggingface.co/models/j-hartmann/emotion-english-distilroberta-base",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${process.env.HF_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ inputs: message }),
+      }
+    );
 
-    const result = await analyzeEmotion(message);
-    res.json(result);
+    const data = await response.json();
+    if (!Array.isArray(data) || !Array.isArray(data[0])) {
+      return res.json({ emotion: "unknown", confidence: 0 });
+    }
+
+    const scores = data[0].reduce((acc, cur) => {
+      acc[cur.label.toLowerCase()] = cur.score;
+      return acc;
+    }, {});
+
+    const top = data[0].reduce((a, b) => (a.score > b.score ? a : b));
+
+    res.json({
+      emotion: top.label.toLowerCase(),
+      confidence: top.score,
+      scores, // 👈 include all emotions
+    });
   } catch (err) {
-    console.error("❌ Emotion route failed:", err);
-    res.status(500).json({ error: "Emotion analysis failed" });
+    console.error("Emotion analysis failed:", err);
+    res.json({ emotion: "unknown", confidence: 0 });
   }
 });
+
 
 // -------------- HELPERS -----------------
 

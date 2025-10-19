@@ -68,29 +68,36 @@ export const AgentDashboard = () => {
           setSuggestion("⚠️ Could not load AI suggestion");
         }
         if (emo.status === "fulfilled") {
-          const e = emo.value.emotion
-            ? emo.value.emotion[0].toUpperCase() + emo.value.emotion.slice(1)
-            : "Unknown";
-          setSentiment({
-            emotion: e,
-            confidence: emo.value.confidence ?? 0,
-          });
-          setEmotions((prev) => ({
-            frustration:
-              e.toLowerCase().includes("anger") ||
-              e.toLowerCase().includes("frustrat")
-                ? Math.max(prev.frustration, 70)
-                : prev.frustration - 1,
-            confusion:
-              prev.confusion + (e.toLowerCase().includes("confus") ? 2 : -1),
-            hope:
-              prev.hope +
-              (e.toLowerCase().includes("joy") ||
-              e.toLowerCase().includes("hope")
-                ? 2
-                : -1),
-          }));
-        }
+  const { emotion, confidence, scores = {} } = emo.value;
+
+  setSentiment({
+    emotion: emotion
+      ? emotion[0].toUpperCase() + emotion.slice(1)
+      : "Unknown",
+    confidence: confidence ?? 0,
+  });
+
+  // Calculate the target (raw) values first
+  const targetFrustration = Math.round(((scores.anger ?? 0) + (scores.sadness ?? 0)) * 100);
+  const targetConfusion = Math.round(((scores.fear ?? 0) + (scores.surprise ?? 0)) * 100);
+  const targetHope = Math.round(((scores.joy ?? 0) + (scores.trust ?? 0)) * 100);
+
+  // Smooth transitions instead of jumping to the new values instantly
+  setEmotions(prev => ({
+    frustration: prev.frustration + ((targetFrustration - prev.frustration) * 0.3),
+    confusion: prev.confusion + ((targetConfusion - prev.confusion) * 0.3),
+    hope: prev.hope + ((targetHope - prev.hope) * 0.3),
+  }));
+
+  // Empathy adjusts inversely to frustration, with safe bounds
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  setEmpathy(_prev => {
+    const targetEmpathy = 9.5 - (scores.anger ?? 0) * 3;
+    return Math.max(6.8, Math.min(9.6, +targetEmpathy.toFixed(1)));
+  });
+}
+
+
       } finally {
         setLoadingSuggestion(false);
       }
