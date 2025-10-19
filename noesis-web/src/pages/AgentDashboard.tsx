@@ -305,14 +305,16 @@ export const AgentDashboard: React.FC = () => {
               <i className="fas fa-sign-out-alt text-sm text-red-400"/>
               <span className="text-xs text-red-400 hidden md:inline">Exit</span> */}
             {/* <button >CLICK TO VIEW DEVELOPMENT VERSION</button> */}
-            <button
-              onClick={handleClick}
-              className="cursor-pointer relative px-6 py-3 rounded-xl border border-white text-white font-medium 
-                 hover:bg-white hover:text-black transition-all duration-300 
-                 hover:shadow-[0_0_15px_rgba(255,255,255,0.8)]"
-            >
-              Click to Connect to Client Dashboard
-            </button>
+           <button
+  onClick={handleClick}
+  className="cursor-pointer px-6 py-3 rounded-xl border text-base font-medium 
+             dark:border-black light:text-black 
+             border-white dark:text-white"
+>
+  Click to Connect to Client Dashboard
+</button>
+
+
             <button
               onClick={handleOpenClient}
               className="relative px-6 py-3 text-white font-semibold rounded-xl 
