@@ -78,16 +78,17 @@ export const AgentDashboard = () => {
   });
 
   // Calculate the target (raw) values first
-  const targetFrustration = Math.round(((scores.anger ?? 0) + (scores.sadness ?? 0)) * 100);
-  const targetConfusion = Math.round(((scores.fear ?? 0) + (scores.surprise ?? 0)) * 100);
-  const targetHope = Math.round(((scores.joy ?? 0) + (scores.trust ?? 0)) * 100);
+  // const targetFrustration = Math.round(((scores.anger ?? 0) + (scores.sadness ?? 0)) * 100);
+  // const targetConfusion = Math.round(((scores.fear ?? 0) + (scores.surprise ?? 0)) * 100);
+  // const targetHope = Math.round(((scores.joy ?? 0) + (scores.trust ?? 0)) * 100);
 
   // Smooth transitions instead of jumping to the new values instantly
-  setEmotions(prev => ({
-    frustration: prev.frustration + ((targetFrustration - prev.frustration) * 0.3),
-    confusion: prev.confusion + ((targetConfusion - prev.confusion) * 0.3),
-    hope: prev.hope + ((targetHope - prev.hope) * 0.3),
-  }));
+  setEmotions({
+  frustration: Math.round(((scores.anger ?? 0) + (scores.sadness ?? 0)) * 100),
+  confusion: Math.round(((scores.fear ?? 0) + (scores.surprise ?? 0)) * 100),
+  hope: Math.round(((scores.joy ?? 0) + (scores.trust ?? 0)) * 100),
+});
+
 
   // Empathy adjusts inversely to frustration, with safe bounds
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -287,7 +288,10 @@ export const AgentDashboard = () => {
                   <span className="text-orange-400 font-semibold">{emotions.frustration >= 70 ? "High" : "Moderate"}</span>
                 </div>
                 <div className="w-full bg-gray-800 rounded-full h-1">
-                  <div className="bg-orange-500 h-1 rounded-full" style={{ width: `${Math.min(100, Math.max(0, emotions.frustration))}%` }} />
+<div
+  className="bg-orange-500 h-1 rounded-full"
+  style={{ width: `${Math.min(100, Math.max(0, emotions.frustration))}%` }}
+/>
                 </div>
               </div>
               <div>
@@ -296,7 +300,10 @@ export const AgentDashboard = () => {
                   <span className="text-green-400 font-semibold">{emotions.hope > 30 ? "Good" : "Fair"}</span>
                 </div>
                 <div className="w-full bg-gray-800 rounded-full h-1">
-                  <div className="bg-green-500 h-1 rounded-full" style={{ width: `${Math.min(100, Math.max(0, 88))}%` }} />
+<div
+  className="bg-green-500 h-1 rounded-full"
+  style={{ width: `${Math.min(100, Math.max(0, emotions.hope))}%` }}
+/>
                 </div>
               </div>
             </div>

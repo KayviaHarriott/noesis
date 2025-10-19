@@ -85,7 +85,7 @@ app.post("/api/analyze-emotion", async (req, res) => {
 
     const data = await response.json();
     if (!Array.isArray(data) || !Array.isArray(data[0])) {
-      return res.json({ emotion: "unknown", confidence: 0 });
+      return res.json({ emotion: "unknown", confidence: 0, scores: {} });
     }
 
     const scores = data[0].reduce((acc, cur) => {
@@ -98,13 +98,14 @@ app.post("/api/analyze-emotion", async (req, res) => {
     res.json({
       emotion: top.label.toLowerCase(),
       confidence: top.score,
-      scores, // 👈 include all emotions
+      scores, // 👈 include all emotion probabilities
     });
   } catch (err) {
     console.error("Emotion analysis failed:", err);
-    res.json({ emotion: "unknown", confidence: 0 });
+    res.json({ emotion: "unknown", confidence: 0, scores: {} });
   }
 });
+
 
 
 // -------------- HELPERS -----------------
