@@ -6,6 +6,9 @@ import {
   fetchAiSuggestion,
   fetchRelevantDocs,
 } from "../api/agentApi";
+import { Link } from "react-router-dom";
+
+
 
 // Types
 type RelevantDoc = {
@@ -40,6 +43,12 @@ export const AgentDashboard: React.FC = () => {
     emotion: "",
     confidence: 0.0,
   });
+
+
+const handleOpenClient = (e: React.MouseEvent) => {
+  e.preventDefault();
+  window.open("/client", "_blank", "noopener,noreferrer");
+};
 
   const transcriptRef = useRef<HTMLDivElement>(null);
 
@@ -215,7 +224,9 @@ export const AgentDashboard: React.FC = () => {
             </button>
             <button className="px-3 py-2 bg-slate-800/40 hover:bg-slate-700/40 border border-slate-700/30 rounded-lg transition flex items-center gap-2">
               <i className="fas fa-cog text-sm text-gray-400"/>
-              <span className="text-xs text-gray-300 hidden md:inline">Settings</span>
+              {/* <span className="text-xs text-gray-300 hidden md:inline">Customer Dashboard</span> */}
+              
+              <Link to="/client" onClick={handleOpenClient} ><span className="text-xs text-gray-300 hidden md:inline">Customer Dashboard</span></Link>
             </button>
             <button className="px-3 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-lg transition flex items-center gap-2">
               <i className="fas fa-sign-out-alt text-sm text-red-400"/>
