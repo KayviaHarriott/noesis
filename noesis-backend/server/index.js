@@ -128,7 +128,8 @@ async function suggestFromOllama(text) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: process.env.OLLAMA_MODEL || "qwen2.5:latest",
+          // model: process.env.OLLAMA_MODEL || "qwen2.5:latest",
+          model: process.env.OLLAMA_MODEL || "default",
           // prompt: `Client said: "${text}". Suggest a kind, empathetic, and helpful response the agent could say.`,
           prompt: `You are guiding a live customer support agent during a call.
 
