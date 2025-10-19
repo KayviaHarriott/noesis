@@ -284,7 +284,7 @@ export const AgentDashboard: React.FC = () => {
         </div>
 
         {/* CENTER: Transcript & controls */}
-        <div className="col-span-12 md:col-span-8 flex flex-col gap-3 mobile-transcript">
+        <div className="col-span-12 md:col-span-6 flex flex-col gap-3 mobile-transcript">
           {/* Top metrics strip */}
           <div className="glass-panel p-3">
             <div className="flex items-center justify-between">
@@ -352,7 +352,7 @@ export const AgentDashboard: React.FC = () => {
         </div>
 
         {/* RIGHT: AI Coaching & Docs & Metrics */}
-        <div className="col-span-12 md:col-span-2 flex flex-col gap-3 overflow-y-auto scrollbar-thin pr-1">
+        <div className="col-span-12 md:col-span-4 flex flex-col gap-3 overflow-y-auto scrollbar-thin pr-1">
           {/* AI Coaching */}
           <div className="glass-panel p-3">
             <div className="flex items-center gap-2 mb-3"><i className="fas fa-lightbulb text-yellow-400 text-sm"/><h3 className="font-semibold text-sm">AI Coaching</h3></div>
