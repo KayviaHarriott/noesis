@@ -7,6 +7,7 @@ import fetch from "node-fetch";
 import dotenv from "dotenv";
 import { Readable } from "stream";
 import https from "https";
+import { searchRelevantDocs } from "../utils/searchDocs.js";
 
 dotenv.config();
 
@@ -176,6 +177,21 @@ async function suggestFromOllama(text) {
     return "⚠️ Could not connect to Ollama API.";
   }
 }
+
+
+app.post("/api/searchDocs", async (req, res) => {
+  try {
+    const { transcript } = req.body;
+    const results = await searchRelevantDocs(transcript);
+    // const res = await searchRelevantDocs(transcript);
+    res.json(results);
+  } catch (err) {
+    console.error("Error searching docs:", err);
+    res.status(500).json({ error: "Failed to search docs" });
+  }
+});
+
+
 
 async function analyzeEmotion(text) {
   try {

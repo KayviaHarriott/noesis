@@ -15,6 +15,16 @@ export function subscribeToClientMessages(callback: (message: string) => void) {
   };
 }
 
+export async function fetchRelevantDocs(text: string) {
+    const res = await fetch(`${BACKEND_URL}/api/searchDocs`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ transcript: text }),
+    });
+    return res.json();
+  }
+
+
 // export const fetchAiSuggestion = async (message: string): Promise<string> => {
 //   const res = await fetch(BACKEND_URL+`/api/suggest-with-emotion-audio`, {
 //     method: "POST",

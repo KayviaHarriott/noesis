@@ -3,8 +3,16 @@ import {
   sendAgentReply,
   subscribeToClientMessages,
   fetchAiSuggestion,
+  fetchRelevantDocs,
   // fetchEmotion,
 } from "../api/agentApi";
+
+type RelevantDoc = {
+  title: string;
+  snippet: string;
+  score?: string;
+};
+
 
 export const AgentDashboard = () => {
   // Chat + AI suggestion
@@ -19,6 +27,7 @@ export const AgentDashboard = () => {
   // Live metrics (demo-friendly)
   const [empathy, setEmpathy] = useState(8.4);
   const [clock, setClock] = useState(0); // seconds in-call
+const [relevantDocs, setRelevantDocs] = useState<RelevantDoc[]>([]);
   // const [emotions, setEmotions] = useState({
   //   frustration: 0,
   //   confusion: 0,
@@ -30,6 +39,9 @@ export const AgentDashboard = () => {
   }>({ emotion: "Frustrated", confidence: 0.8 });
 
   const transcriptRef = useRef<HTMLDivElement>(null);
+
+  
+  // In your useEffect (after setting suggestion/sentiment)
 
   // Load saved theme
   useEffect(() => {
@@ -47,11 +59,9 @@ export const AgentDashboard = () => {
     localStorage.setItem("theme", next ? "light" : "dark");
   };
 
-  // Subscribe to client messages and fetch AI suggestion + emotion
   useEffect(() => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const unsubscribe = subscribeToClientMessages((data: any) => {
-    // Handle both string and structured JSON
     const msgText =
       typeof data === "string"
         ? data
@@ -66,26 +76,42 @@ export const AgentDashboard = () => {
       50
     );
 
-    // ✅ If backend already sends structured data, update directly
-    if (data?.suggestion && data?.emotion) {
-      setSuggestion(data.suggestion);
-      setSentiment({
-        emotion: data.emotion,
-        confidence: data.confidence ?? 0,
-      });
-    } else {
-      // fallback: fetch manually if backend didn’t include it
-      setLoadingSuggestion(true);
-      fetchAiSuggestion(msgText)
-        .then((ai) => {
+    // ✅ Wrap async logic in an IIFE
+    (async () => {
+      if (data?.suggestion && data?.emotion) {
+        // If backend already provided suggestion and emotion
+        setSuggestion(data.suggestion);
+        setSentiment({
+          emotion: data.emotion,
+          confidence: data.confidence ?? 0,
+        });
+
+        // Fetch relevant docs safely inside async IIFE
+        try {
+          const docs = await fetchRelevantDocs(msgText);
+          setRelevantDocs(docs);
+        } catch (err) {
+          console.error("Error fetching relevant docs:", err);
+        }
+      } else {
+        // fallback: fetch manually if backend didn’t include suggestion
+        setLoadingSuggestion(true);
+        try {
+          const ai = await fetchAiSuggestion(msgText);
           setSuggestion(ai.suggestion);
           setSentiment({
             emotion: ai.emotion,
             confidence: ai.confidence,
           });
-        })
-        .finally(() => setLoadingSuggestion(false));
-    }
+
+          // Then fetch relevant docs
+          const docs = await fetchRelevantDocs(msgText);
+          setRelevantDocs(docs);
+        } finally {
+          setLoadingSuggestion(false);
+        }
+      }
+    })();
   });
 
   return () => unsubscribe();
@@ -573,15 +599,21 @@ export const AgentDashboard = () => {
 
             {/* Main AI suggestion */}
             <div className="border rounded p-3 bg-gray-50/5 mb-3 min-h-[120px]">
-              {loadingSuggestion ? (
-                <p className="text-gray-400 italic">Generating suggestion...</p>
-              ) : suggestion ? (
-                <p className="text-gray-200">{suggestion}</p>
-              ) : (
-                <p className="text-gray-400 italic">
-                  Waiting for client message...
-                </p>
-              )}
+            <p># of Docs: {relevantDocs.length}</p>
+              {relevantDocs.length > 0 ? (
+  <div className="space-y-2">
+    {relevantDocs.map((doc, i) => (
+      <div key={i} className="border-b border-slate-700 pb-1 mb-1">
+        <p className="text-blue-400 font-semibold text-xs">{doc.title}</p>
+        <p className="text-gray-300 text-xs">{doc.snippet}...</p>
+      </div>
+    ))}
+  </div>
+) : (
+  <p className="text-gray-400 italic text-xs">No relevant documents yet.</p>
+)}
+
+
               <button
                 className="w-full px-2 py-1 mt-3 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs font-semibold disabled:bg-gray-500"
                 onClick={useSuggestion}
